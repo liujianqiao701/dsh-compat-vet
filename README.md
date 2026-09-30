@@ -296,11 +296,17 @@ const report = auditProfile({ profileDir, profileName: 'web', installAnchor })
 
 ### 从 npm 安装（给使用者的那条路）
 
-已发布到 npm：**[dsh-compat-vet](https://www.npmjs.com/package/dsh-compat-vet)**
+已发布到 npm：**[dsh-compat-vet](https://www.npmjs.com/package/dsh-compat-vet)**（`latest = 0.3.0`）
 
 ```bash
 dsh plugin --profile web add dsh-compat-vet
 ```
+
+源码仓库：**[liujianqiao701/dsh-compat-vet](https://github.com/liujianqiao701/dsh-compat-vet)**
+
+> 「陌生人装上能不能用」是**实测**过的，不是推断：`node scripts/verify-tarball-install.mjs --from-npm dsh-compat-vet`
+> 会在空白 profile 里用 dsh 自己的安装命令装**registry 上那个包**、真启动、取回页面横幅代码、再卸载干净（16 项）。
+> 单测跑的是源码目录，而别人装到的是 npm 包 —— 两者不是一回事（`files` 少一项就够让单测全绿而别人装完是坏的）。
 
 > **关于名字（改过两次）**：
 > 最初叫 `dsh-plugin-doctor` —— 但这个名字**在 npm 上已经被别人占用**（作者 `Xrainsmile`，0.1.1），
