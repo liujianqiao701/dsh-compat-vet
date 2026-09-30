@@ -35,8 +35,8 @@ test('nodeModulesRootOf：scoped 包也能正确定位 node_modules（曾经的�
   // scoped：<root>/node_modules/@deepseek-ai/dsh/package.json
   const scoped = path.join(root, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
   assert.equal(nodeModulesRootOf(scoped), path.join(root, 'node_modules'))
-  // 非 scoped：<root>/node_modules/dsh-compat-doctor/package.json
-  const plain = path.join(root, 'node_modules', 'dsh-compat-doctor', 'package.json')
+  // 非 scoped：<root>/node_modules/dsh-compat-vet/package.json
+  const plain = path.join(root, 'node_modules', 'dsh-compat-vet', 'package.json')
   assert.equal(nodeModulesRootOf(plain), path.join(root, 'node_modules'))
   // profile 里的插件（嵌套 node_modules）
   const nested = path.join(root, 'profiles', 'web', 'node_modules', 'dsh-cost-meter', 'package.json')
@@ -71,7 +71,7 @@ test('packageDirOf：按包名拼出目录，scope 只出现一次；存在性�
 
 test('scopeOf：取出包名里的 scope，没有 scope 时返回 undefined', () => {
   assert.equal(scopeOf('@deepseek-ai/dsh-app-boot'), '@deepseek-ai')
-  assert.equal(scopeOf('dsh-compat-doctor'), undefined)
+  assert.equal(scopeOf('dsh-compat-vet'), undefined)
   assert.equal(scopeOf(undefined), undefined)
 })
 
@@ -182,7 +182,7 @@ test('resolveContext：ctx.profileContext 读属性会抛时也不能失能（ds
 })
 
 test('resolveContext：显式的 --home/--profile 必须压过环境里的 DSH_PROFILE_DIR', () => {
-  // 真机踩到：`dsh-compat-doctor --profile doctorcheck --home X` 被无视，
+  // 真机踩到：`dsh-compat-vet --profile doctorcheck --home X` 被无视，
   // 因为环境里 DSH_PROFILE_DIR 指向另一个 profile，而它排在「按 home 推导」前面。
   // 命令行是显式选择，不该输给环境变量。
   const explicit = resolveContext({

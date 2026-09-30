@@ -96,7 +96,7 @@ client.apply()
 await flush()
 await flush()
 
-const banner = dom.document.getElementById('dsh-compat-doctor-banner')
+const banner = dom.document.getElementById('dsh-compat-vet-banner')
 console.log(`\n${'='.repeat(78)}\n浏览器里会看到的横幅\n${'='.repeat(78)}`)
 if (banner === null) {
   console.log('（没有问题，所以**不挂横幅** —— 这是刻意的：没毛病就别打扰用户）')
@@ -118,7 +118,7 @@ if (args.press !== undefined) {
   const newOnes = requests.slice(before)
   if (newOnes.length === 0) console.log('（没有发出任何请求）')
   for (const one of newOnes) console.log(`  → ${one.method} ${one.url}${one.body ? `  body=${one.body}` : ''}`)
-  const after = dom.document.getElementById('dsh-compat-doctor-banner')
+  const after = dom.document.getElementById('dsh-compat-vet-banner')
   const flash = client.__test.state.flash
   if (flash) console.log(`  横幅结果态：${flash.ok ? '成功' : '失败'} —— ${flash.text}`)
   else if (after !== null) console.log(`  横幅仍在（等待后端作业）：${after.textContent.split('\n')[0]}`)

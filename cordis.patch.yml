@@ -1,7 +1,7 @@
-# dsh-compat-doctor bundle patch: mounts the plugin compatibility doctor.
+# dsh-compat-vet bundle patch: mounts the plugin compatibility doctor.
 #
 # 只在宿主侧（host）运行，不注册任何客户端 UI 资源 —— 因此不需要
 # dsh.client 声明，也不会给 Web 前端增加任何体积。
 - insert:
-    - id: plugin-doctor
-      name: 'dsh-compat-doctor'
+    - id: compat-vet
+      name: 'dsh-compat-vet'

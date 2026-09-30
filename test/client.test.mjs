@@ -20,7 +20,7 @@ import fs from 'node:fs'
 import { CLIENT_FILE, FakeElement, makeDom, loadClient, keyEvent, clickTarget, flush } from '../scripts/helpers/fake-dom.mjs'
 
 const STATUS = {
-  schema: 'dsh-compat-doctor/status/v1',
+  schema: 'dsh-compat-vet/status/v1',
   dshVersion: '0.2.0-rc.2',
   profile: 'web',
   summary: { blocked: 1, warned: 0, problems: 1 },
@@ -70,7 +70,7 @@ test('客户端：横幅同时写明插件版本号与 dsh 版本号（用户硬
   exports.apply()
   await flush()
 
-  const banner = dom.document.getElementById('dsh-compat-doctor-banner')
+  const banner = dom.document.getElementById('dsh-compat-vet-banner')
   assert.ok(banner, '有问题时必须挂出横幅')
   const html = banner.innerHTML
   assert.match(html, /dsh-cost-meter/, '必须点名是哪个插件')
@@ -110,7 +110,7 @@ test('客户端：修复成功但 dsh 本进程还没重估 → 仍然是绿色�
   await flush()
 
   assert.equal(exports.__test.state.flash.ok, true, '已验证修复就必须是成功态')
-  const banner = dom.document.getElementById('dsh-compat-doctor-banner')
+  const banner = dom.document.getElementById('dsh-compat-vet-banner')
   assert.match(banner.innerHTML, /✅ 已处理/)
   assert.match(banner.innerHTML, /改动已写入 profile 配置/, '要如实说明 dsh 还没重估这件事')
   assert.ok(!/❌/.test(banner.innerHTML), '不能出现失败标记')
@@ -130,7 +130,7 @@ test('客户端：有阻断问题时，「快要不适配」的预警也不能�
   exports.apply()
   await flush()
 
-  const banner = dom.document.getElementById('dsh-compat-doctor-banner')
+  const banner = dom.document.getElementById('dsh-compat-vet-banner')
   assert.match(banner.innerHTML, /dsh-cost-meter/, '先给更紧急的（阻断）那条')
   assert.match(banner.innerHTML, /dshmarket/, '预警也必须出现在同一屏')
   assert.match(banner.innerHTML, /0\.3\.0/, '要说清坏在哪个版本')
@@ -139,14 +139,14 @@ test('客户端：有阻断问题时，「快要不适配」的预警也不能�
 
   // 点「查看 / 预防性处理」→ 切到预警视图
   dom.document.fire('click', { target: clickTarget('data-dpd-showpre'), preventDefault() {}, stopPropagation() {} })
-  const warn = dom.document.getElementById('dsh-compat-doctor-banner')
+  const warn = dom.document.getElementById('dsh-compat-vet-banner')
   assert.match(warn.innerHTML, /升级预警/, '切过去要显示预警视图')
   assert.match(warn.innerHTML, /dshmarket/)
   assert.match(warn.innerHTML, /data-dpd-showproblems/, '要有返回冲突问题的入口')
 
   // 再切回来
   dom.document.fire('click', { target: clickTarget('data-dpd-showproblems'), preventDefault() {}, stopPropagation() {} })
-  const back = dom.document.getElementById('dsh-compat-doctor-banner')
+  const back = dom.document.getElementById('dsh-compat-vet-banner')
   assert.match(back.innerHTML, /插件冲突/)
   assert.match(back.innerHTML, /dsh-cost-meter/)
 })
@@ -165,12 +165,12 @@ test('客户端：升级预警项「预防性处理」后，动作键立刻可�
   exports.apply()
   await flush()
 
-  const banner = dom.document.getElementById('dsh-compat-doctor-banner')
+  const banner = dom.document.getElementById('dsh-compat-vet-banner')
   assert.match(banner.className, /dpd-warn/, '只有预警时用黄色')
   assert.match(banner.innerHTML, /预防性处理/)
 
   dom.document.fire('click', { target: clickTarget('data-dpd-pre', '0'), preventDefault() {}, stopPropagation() {} })
-  const promoted = dom.document.getElementById('dsh-compat-doctor-banner')
+  const promoted = dom.document.getElementById('dsh-compat-vet-banner')
   assert.match(promoted.innerHTML, /dshmarket/, '提升后要看得见它')
   assert.match(promoted.innerHTML, /升级风险/)
   assert.equal(exports.__test.state.bindings['1'], 'quarantine', '提升后数字键必须真的绑上了')
@@ -182,7 +182,7 @@ test('客户端：没有问题时不出横幅，绝不干扰页面', async () =>
   const exports = await loadClient({ dom, fetchImpl: fakeFetch({ status: empty }) })
   exports.apply()
   await flush()
-  assert.equal(dom.document.getElementById('dsh-compat-doctor-banner'), null)
+  assert.equal(dom.document.getElementById('dsh-compat-vet-banner'), null)
   assert.equal(dom.document.body.children.length, 0)
 })
 
@@ -202,10 +202,10 @@ test('客户端：按 1 就发出隔离请求（这是「立刻修复」那条�
 
   const post = impl.calls.find((c) => c.method === 'POST')
   assert.ok(post, '必须发出修复请求')
-  assert.equal(post.url, '/dsh-compat-doctor/api/v1/repair')
+  assert.equal(post.url, '/dsh-compat-vet/api/v1/repair')
   assert.deepEqual(JSON.parse(post.body), { action: 'quarantine', name: 'dsh-cost-meter' })
 
-  const banner = dom.document.getElementById('dsh-compat-doctor-banner')
+  const banner = dom.document.getElementById('dsh-compat-vet-banner')
   assert.match(banner.innerHTML, /已处理/, '结果要直接显示在横幅上（用户选的护栏）')
   assert.match(banner.innerHTML, /不需要重启|已处理/)
   assert.match(banner.innerHTML, /已备份 profile 配置/, '执行步骤也要显示出来')
@@ -262,15 +262,15 @@ test('客户端：Esc 收起后，同一个问题不再反复弹；问题集合�
   const exports = await loadClient({ dom, fetchImpl: impl })
   exports.apply()
   await flush()
-  assert.ok(dom.document.getElementById('dsh-compat-doctor-banner'))
+  assert.ok(dom.document.getElementById('dsh-compat-vet-banner'))
 
   exports.__test.onKeyDown(keyEvent('Escape'))
-  assert.equal(dom.document.getElementById('dsh-compat-doctor-banner'), null, 'Esc 应当收起')
-  assert.ok(dom.window.localStorage.getItem('dsh-compat-doctor:dismissed'), '收起要记住，否则会一直打扰')
+  assert.equal(dom.document.getElementById('dsh-compat-vet-banner'), null, 'Esc 应当收起')
+  assert.ok(dom.window.localStorage.getItem('dsh-compat-vet:dismissed'), '收起要记住，否则会一直打扰')
 
   // 同样的问题再来一次：不弹
   await exports.__test.refresh(false)
-  assert.equal(dom.document.getElementById('dsh-compat-doctor-banner'), null, '同一个问题收起后不该再弹')
+  assert.equal(dom.document.getElementById('dsh-compat-vet-banner'), null, '同一个问题收起后不该再弹')
 
   // 问题变了（比如又多了一个插件冲突）：必须重新弹出来
   impl.calls.length = 0
@@ -283,7 +283,7 @@ test('客户端：Esc 收起后，同一个问题不再反复弹；问题集合�
   const exports2 = await loadClient({ dom: dom2, fetchImpl: impl2 })
   exports2.apply()
   await flush()
-  assert.ok(dom2.document.getElementById('dsh-compat-doctor-banner'), '问题集合变了要重新提醒')
+  assert.ok(dom2.document.getElementById('dsh-compat-vet-banner'), '问题集合变了要重新提醒')
 })
 
 test('客户端：接口拿不到数据时安静退场，不报错、不残留 DOM', async () => {
@@ -293,7 +293,7 @@ test('客户端：接口拿不到数据时安静退场，不报错、不残留 D
   const exports = await loadClient({ dom, fetchImpl: failing })
   exports.apply()
   await flush()
-  assert.equal(dom.document.getElementById('dsh-compat-doctor-banner'), null)
+  assert.equal(dom.document.getElementById('dsh-compat-vet-banner'), null)
   assert.equal(exports.__test.state.status, null)
 })
 
@@ -307,7 +307,7 @@ test('客户端：只有升级预警时用黄色提示，并给出「预防性�
   const exports = await loadClient({ dom, fetchImpl: fakeFetch({ status }) })
   exports.apply()
   await flush()
-  const banner = dom.document.getElementById('dsh-compat-doctor-banner')
+  const banner = dom.document.getElementById('dsh-compat-vet-banner')
   assert.ok(banner)
   assert.equal(banner.className, 'dpd-warn')
   assert.match(banner.innerHTML, /升级预警/)
@@ -337,10 +337,10 @@ test('客户端：unmount 之后不再监听键盘、也不留横幅', async () 
   exports.apply()
   await flush()
   assert.ok(dom.document.listenerCount('keydown') > 0)
-  assert.ok(dom.document.getElementById('dsh-compat-doctor-banner'))
+  assert.ok(dom.document.getElementById('dsh-compat-vet-banner'))
 
   exports.unmount()
   assert.equal(dom.document.listenerCount('keydown'), 0)
   assert.equal(dom.document.listenerCount('click'), 0)
-  assert.equal(dom.document.getElementById('dsh-compat-doctor-banner'), null)
+  assert.equal(dom.document.getElementById('dsh-compat-vet-banner'), null)
 })

@@ -28,8 +28,8 @@ import {
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const PLUGIN_DIR = path.resolve(HERE, '..')
 const PROFILE_NAME = 'web'
-const API = '/dsh-compat-doctor/api/v1'
-const PKG_NAME = 'dsh-compat-doctor'
+const API = '/dsh-compat-vet/api/v1'
+const PKG_NAME = 'dsh-compat-vet'
 
 let passed = 0
 let failed = 0
@@ -245,7 +245,7 @@ try {
   check('dsh 的启动注入里列出了这个客户端模块', listed,
     `握手 HTTP ${handshakeStatus}，首页 ${indexHtml.length} 字节`)
   if (listed) {
-    const found = indexHtml.match(/[^"'\s]*dsh-compat-doctor\/client\.js[^"'\s]*/)
+    const found = indexHtml.match(/[^"'\s]*dsh-compat-vet\/client\.js[^"'\s]*/)
     if (found === null) {
       check('能从启动注入里找到客户端模块的 URL', false)
     } else {
@@ -253,7 +253,7 @@ try {
       const response = await fetch(`${web.base}/${clientUrl.replace(/^\//, '')}`)
       const js = await response.text()
       check('浏览器端横幅代码真能取到（HTTP 200）', response.status === 200, `${js.length} 字节`)
-      check('取到的确实是横幅代码', /__ModuleLoader__/.test(js) && /dsh-compat-doctor-banner/.test(js))
+      check('取到的确实是横幅代码', /__ModuleLoader__/.test(js) && /dsh-compat-vet-banner/.test(js))
     }
   }
 

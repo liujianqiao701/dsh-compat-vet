@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 真机启动验证 —— 在两个（或更多）**真实 dsh 版本**上各启动一次，
- * 证明 dsh-compat-doctor 的 apply() 真的在 dsh 进程里跑起来了，
+ * 证明 dsh-compat-vet 的 apply() 真的在 dsh 进程里跑起来了，
  * 而且告警措辞跟着那个 dsh 版本自己变。
  *
  * 为什么不能只靠单元测试：单元测试里 cordis 上下文是我捏的假货。
@@ -121,17 +121,17 @@ function prepareProfile({ home, dshBin, canaryDir }) {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
   manifest.dependencies = {
     ...(manifest.dependencies ?? {}),
-    'dsh-compat-doctor': `link:${PLUGIN_DIR}`,
+    'dsh-compat-vet': `link:${PLUGIN_DIR}`,
     'compat-canary': `link:${canaryDir}`,
   }
   const bundles = manifest.dsh?.profile?.bundles ?? []
   manifest.dsh = {
     ...(manifest.dsh ?? {}),
-    profile: { ...(manifest.dsh?.profile ?? {}), bundles: [...bundles, 'compat-canary', 'dsh-compat-doctor'] },
+    profile: { ...(manifest.dsh?.profile ?? {}), bundles: [...bundles, 'compat-canary', 'dsh-compat-vet'] },
   }
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 
-  linkDir(PLUGIN_DIR, path.join(profileDir, 'node_modules', 'dsh-compat-doctor'))
+  linkDir(PLUGIN_DIR, path.join(profileDir, 'node_modules', 'dsh-compat-vet'))
   linkDir(canaryDir, path.join(profileDir, 'node_modules', 'compat-canary'))
   return profileDir
 }
@@ -181,7 +181,7 @@ for (const anchor of anchors) {
     prepareProfile({ home, dshBin, canaryDir })
     const output = await boot({ home, dshBin })
 
-    const sawPluginWarning = /dsh-compat-doctor: 检测到/.test(output)
+    const sawPluginWarning = /dsh-compat-vet: 检测到/.test(output)
     const denies = runtime.builtIn.deniesAtStartup === true
     const wantPhrase = denies ? /会被拒绝加载/ : /会照常加载/
     const sawRightPhrase = wantPhrase.test(output)
@@ -197,7 +197,7 @@ for (const anchor of anchors) {
       + `（探测结论：${denies ? '会拦' : '不会拦'}） → 交叉核对 ${calibrationAgrees ? '✓ 一致' : '✗ 不一致'}`)
     console.log(`  无 cordis 服务读取错误: ${sawNoInjectError ? '✓' : '✗'}`)
     console.log('  ---- 与插件相关的输出行 ----')
-    for (const line of output.split('\n').filter((l) => /plugin-doctor|canary/.test(l)).slice(0, 8)) {
+    for (const line of output.split('\n').filter((l) => /compat-vet|canary/.test(l)).slice(0, 8)) {
       console.log(`    ${line.trim().slice(0, 150)}`)
     }
 

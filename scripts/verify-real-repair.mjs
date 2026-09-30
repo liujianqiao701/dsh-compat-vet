@@ -4,9 +4,9 @@
  *
  *   ① 造一个必然不兼容的插件（`compat-canary`，要求 dsh >=999.0.0），装进一个临时 profile；
  *   ② 真启动一个 dsh web 服务（临时 DSH_HOME、随机端口）；
- *   ③ 请求 `GET /dsh-compat-doctor/api/v1/status` —— 断言页面拿到的数据里
+ *   ③ 请求 `GET /dsh-compat-vet/api/v1/status` —— 断言页面拿到的数据里
  *      **同时有插件的版本号和当前 dsh 的版本号**（用户提的硬要求）；
- *   ④ 请求 `POST /dsh-compat-doctor/api/v1/repair`（action=quarantine = 页面上按「1」走的那条路）；
+ *   ④ 请求 `POST /dsh-compat-vet/api/v1/repair`（action=quarantine = 页面上按「1」走的那条路）；
  *   ⑤ 断言修复走的是 **dsh 自己的 pluginManager 服务**（而不是我自己写文件）、
  *      **改动真的落盘**、本插件复检干净；
  *   ⑥ **再启动一次 dsh** —— 断言清单里已经没有被隔离的插件，
@@ -40,7 +40,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const PLUGIN_DIR = path.resolve(HERE, '..')
 // 必须叫 web：`dsh web` 这个子命令本身就隐含 `--profile web`，再传一个 --profile 会被拒
 const PROFILE_NAME = 'web'
-const API = '/dsh-compat-doctor/api/v1'
+const API = '/dsh-compat-vet/api/v1'
 
 function parseArgs(argv) {
   const out = { keep: false, dsh: undefined }
@@ -79,17 +79,17 @@ function prepareProfile({ home, dshBin, canaryDir }) {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
   manifest.dependencies = {
     ...(manifest.dependencies ?? {}),
-    'dsh-compat-doctor': `link:${PLUGIN_DIR}`,
+    'dsh-compat-vet': `link:${PLUGIN_DIR}`,
     'compat-canary': `link:${canaryDir}`,
   }
   const bundles = manifest.dsh?.profile?.bundles ?? []
   manifest.dsh = {
     ...(manifest.dsh ?? {}),
-    profile: { ...(manifest.dsh?.profile ?? {}), bundles: [...bundles, 'compat-canary', 'dsh-compat-doctor'] },
+    profile: { ...(manifest.dsh?.profile ?? {}), bundles: [...bundles, 'compat-canary', 'dsh-compat-vet'] },
   }
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 
-  linkDir(PLUGIN_DIR, path.join(profileDir, 'node_modules', 'dsh-compat-doctor'))
+  linkDir(PLUGIN_DIR, path.join(profileDir, 'node_modules', 'dsh-compat-vet'))
   linkDir(canaryDir, path.join(profileDir, 'node_modules', 'compat-canary'))
   return profileDir
 }
@@ -146,14 +146,14 @@ try {
     // 首页有浏览器鉴权（签名 cookie）：照浏览器的做法，先访问 dsh 打印的带凭证 URL 换 cookie。
     const { cookie, status: handshakeStatus } = await handshake({ base: first.base, port: port1, output: first.output() })
     const indexHtml = await (await fetch(`${first.base}/`, { headers: cookie === '' ? {} : { cookie } })).text()
-    const listed = indexHtml.includes('dsh-compat-doctor')
+    const listed = indexHtml.includes('dsh-compat-vet')
     check('dsh 的启动注入里列出了本插件的客户端模块', listed,
       `握手 HTTP ${handshakeStatus}，cookie ${cookie === '' ? '无' : '已拿到'}，首页 ${indexHtml.length} 字节`)
     if (!listed) {
       console.log(`  （首页开头：${indexHtml.slice(0, 300).replace(/\s+/g, ' ')}）`)
       console.log(`  （启动输出里的 URL：${(first.output().match(/https?:\/\/[^\s"']+/g) ?? []).join(' | ') || '无'}）`)
     } else {
-      const found = indexHtml.match(/[^"'\s]*dsh-compat-doctor\/client\.js[^"'\s]*/)
+      const found = indexHtml.match(/[^"'\s]*dsh-compat-vet\/client\.js[^"'\s]*/)
       if (found === null) {
         check('能从启动注入里找到客户端模块的 URL', false)
       } else {
@@ -162,7 +162,7 @@ try {
         const clientJs = await clientResponse.text()
         check('客户端横幅的代码能真的取到（HTTP 200）', clientResponse.status === 200,
           `URL=${clientUrl}`)
-        check('取到的确实是横幅代码', /__ModuleLoader__/.test(clientJs) && /dsh-compat-doctor-banner/.test(clientJs),
+        check('取到的确实是横幅代码', /__ModuleLoader__/.test(clientJs) && /dsh-compat-vet-banner/.test(clientJs),
           `${clientJs.length} 字节`)
       }
     }
@@ -231,11 +231,11 @@ try {
     check('第二次启动正常', true)
     const output = second.output()
     check('启动输出里**没有**再跳过 compat-canary', !/skipping profile bundle "compat-canary"/.test(output))
-    check('启动告警消失（说明已经没冲突了）', !/dsh-compat-doctor: 检测到/.test(output))
+    check('启动告警消失（说明已经没冲突了）', !/dsh-compat-vet: 检测到/.test(output))
     const status = await (await fetch(`${second.base}${API}/status`)).json()
     check('第二次启动的体检：0 项冲突', (status.summary?.problems ?? -1) === 0,
       `blocked=${status.summary?.blocked} warned=${status.summary?.warned}`)
-    const lines = output.split('\n').filter((one) => /compat-canary|plugin-doctor/.test(one)).slice(0, 6)
+    const lines = output.split('\n').filter((one) => /compat-canary|compat-vet/.test(one)).slice(0, 6)
     if (lines.length > 0) {
       console.log('  ---- 第二次启动里与本插件/金丝雀相关的行 ----')
       for (const line of lines) console.log(`    ${line.trim().slice(0, 150)}`)

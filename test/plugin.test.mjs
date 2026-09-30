@@ -159,7 +159,7 @@ test('页面接口：有 webServer 时挂上两条 exact 路由，并用 effect 
   assert.equal(ctx.registered.routes.length, 2, '状态与修复各一条')
   assert.deepEqual(
     ctx.registered.routes.map((r) => r.path).sort(),
-    ['/dsh-compat-doctor/api/v1/repair', '/dsh-compat-doctor/api/v1/status'],
+    ['/dsh-compat-vet/api/v1/repair', '/dsh-compat-vet/api/v1/status'],
   )
   for (const route of ctx.registered.routes) assert.equal(route.kind, 'exact')
   assert.equal(ctx.registered.effects.length, 1, '释放函数要登记进 effect，避免热重载后路由叠加')
@@ -212,7 +212,7 @@ test('页面接口：pluginManager 服务是**延迟**取的（apply 时还没�
 })
 
 test('导出契约正确', () => {
-  assert.equal(name, 'dsh-compat-doctor')
+  assert.equal(name, 'dsh-compat-vet')
   // 刻意不 inject：要能在基础设施不全的环境里也加载起来，靠 ctx.get() 降级
   assert.deepEqual(inject, [])
 })
@@ -222,7 +222,7 @@ test('完整上下文：同步打出中文告警，并注册 1 个工具 + 1 个
   const ctx = fakeCtx({ profileContext: { name: 'web', dir: f.profileDir } })
   const stderr = captureStderr(() => apply(ctx, configFor(f)))
 
-  assert.match(stderr, /dsh-compat-doctor: 检测到 1 个插件与 dsh 0\.2\.0-rc\.2 存在兼容性问题/)
+  assert.match(stderr, /dsh-compat-vet: 检测到 1 个插件与 dsh 0\.2\.0-rc\.2 存在兼容性问题/)
   assert.match(stderr, /bad-peer/)
   assert.equal(ctx.registered.tools.length, 1)
   assert.equal(ctx.registered.sections.length, 1)
@@ -277,7 +277,7 @@ test('工具的 execute 返回可渲染文本 + 可解析的 JSON 报告', async
   assert.deepEqual(tool.output.render({}, value), [{ type: 'text', text: value.text }])
 
   const parsed = JSON.parse(value.reportJson)
-  assert.equal(parsed.schema, 'dsh-compat-doctor/v1')
+  assert.equal(parsed.schema, 'dsh-compat-vet/v1')
   assert.equal(parsed.runtimeVersion, RUNTIME)
   assert.equal(parsed.summary.blocked, 1)
 
@@ -291,7 +291,7 @@ test('提示词段落：有问题给内容、无问题返回空串；措辞随�
   const ctx = fakeCtx({ profileContext: { name: 'web', dir: f.profileDir } })
   captureStderr(() => apply(ctx, configFor(f)))
   const section = ctx.registered.sections[0]
-  assert.equal(section.name, 'dsh-compat-doctor')
+  assert.equal(section.name, 'dsh-compat-vet')
   assert.equal(typeof section.order, 'number')
   assert.equal(section.interpolate, false)
   const text = section.text({})

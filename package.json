@@ -1,6 +1,6 @@
 {
-  "name": "dsh-compat-doctor",
-  "version": "0.3.0",
+  "name": "dsh-compat-vet",
+  "version": "0.3.1",
   "type": "module",
   "description": "DSH 插件兼容性体检：自动探测本机 dsh 版本与能力（含实测校准），适配任意 dsh 版本；启动时检查已装插件是否冲突，在 DSH 页面上给出中文预警与一键修复（隔离/卸载/升级），并提前预警「快要不适配」的插件",
   "keywords": [
@@ -10,21 +10,21 @@
     "cordis",
     "plugin",
     "compatibility",
-    "doctor"
+    "vet"
   ],
   "author": "liujianqiao",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/liujianqiao701/dsh-compat-doctor.git"
+    "url": "git+https://github.com/liujianqiao701/dsh-compat-vet.git"
   },
-  "homepage": "https://github.com/liujianqiao701/dsh-compat-doctor#readme",
+  "homepage": "https://github.com/liujianqiao701/dsh-compat-vet#readme",
   "bugs": {
-    "url": "https://github.com/liujianqiao701/dsh-compat-doctor/issues"
+    "url": "https://github.com/liujianqiao701/dsh-compat-vet/issues"
   },
   "main": "lib/index.js",
   "bin": {
-    "dsh-compat-doctor": "lib/cli.js"
+    "dsh-compat-vet": "lib/cli.js"
   },
   "scripts": {
     "test": "node --test test/audit.test.mjs test/adapt.test.mjs test/plugin.test.mjs test/semver.test.mjs test/upgrade.test.mjs test/repair.test.mjs test/routes.test.mjs test/client.test.mjs test/versions.test.mjs",

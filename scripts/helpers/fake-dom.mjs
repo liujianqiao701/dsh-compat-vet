@@ -118,7 +118,7 @@ export async function loadClient({ dom, fetchImpl }) {
   // 每次换一个 query 让 ESM 重新求值，避免模块缓存串味
   await import(`${pathToFileURL(CLIENT_FILE).href}?t=${Date.now()}${Math.random()}`)
   assert.equal(registrations.length, 1, '客户端必须恰好注册一次')
-  assert.equal(registrations[0].id, 'dsh-compat-doctor', 'id 必须是包名')
+  assert.equal(registrations[0].id, 'dsh-compat-vet', 'id 必须是包名')
   return registrations[0].factory(() => { throw new Error('本插件不请求任何外部模块') })
 }
 

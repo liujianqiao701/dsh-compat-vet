@@ -1,5 +1,5 @@
-url: https://github.com/liujianqiao701/dsh-compat-doctor
-name: liujianqiao701/dsh-compat-doctor
+url: https://github.com/liujianqiao701/dsh-compat-vet
+name: liujianqiao701/dsh-compat-vet
 category: dev
 description:
   en: Checks installed dsh plugins for version conflicts with the running dsh, warns on the DSH web page about plugins that the next startup would refuse to load, and repairs them with one keypress by isolating or uninstalling the plugin, backing up the profile first and rolling back automatically if the change does not take effect.

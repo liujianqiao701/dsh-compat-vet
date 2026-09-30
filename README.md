@@ -1,4 +1,4 @@
-# dsh-compat-doctor
+# dsh-compat-vet
 
 **DSH 插件兼容性体检 + 页面上的一键修复** —— 检查已安装插件与当前 dsh 运行时是否冲突，
 中文预警并给出**可直接执行**的命令；装了本插件之后，`dsh web` 的页面顶部会直接弹出横幅，
@@ -30,7 +30,7 @@ incompatible with dsh 0.2.0-rc.2: peerDependencies {"@deepseek-ai/dsh-credential
 "^0.1.0-rc.6 || ^0.1.1-0 || ^0.1.2-0 || ^0.1.3-0 || ^0.1.5-0", ...}
 ```
 
-本插件对同一环境的结论（`dsh-compat-doctor` / `plugin_compat_check` 工具）：
+本插件对同一环境的结论（`dsh-compat-vet` / `plugin_compat_check` 工具）：
 
 ```
 [阻断] dsh-cost-meter @ 1.7.35
@@ -210,10 +210,10 @@ dsh 的兼容性预检只检查 `peerDependencies` 中以 `@deepseek-ai/dsh` / `
 装进 profile 后，每次 dsh 启动会自动体检，有问题就往 stderr 打一段中文告警：
 
 ```
-dsh-compat-doctor: 检测到 1 个插件与 dsh 0.2.0-rc.2 存在兼容性问题：
+dsh-compat-vet: 检测到 1 个插件与 dsh 0.2.0-rc.2 存在兼容性问题：
   [阻断] dsh-cost-meter@1.7.35 — 与 dsh 0.2.0-rc.2 不兼容，启动时会被拒绝加载
       建议：dsh plugin --profile web add dsh-cost-meter@latest
-  完整报告：运行 `dsh-compat-doctor`，或在会话里用 plugin_compat_check 工具。
+  完整报告：运行 `dsh-compat-vet`，或在会话里用 plugin_compat_check 工具。
 ```
 
 同时注册一个 `plugin_compat_check` 工具，会话里随时可以复查：
@@ -229,13 +229,13 @@ dsh-compat-doctor: 检测到 1 个插件与 dsh 0.2.0-rc.2 存在兼容性问题
 所以同一个引擎同时提供独立 CLI —— 它**不依赖 dsh 的任何模块**：
 
 ```bash
-dsh-compat-doctor                  # 检查默认 profile（$DSH_PROFILE 或 web）
-dsh-compat-doctor --profile web    # 指定 profile（会压过环境里的 DSH_PROFILE_DIR）
-dsh-compat-doctor --home <目录>     # 指定 ~/.dsh 所在目录
-dsh-compat-doctor --anchor <路径>   # 指定 dsh 的 package.json（校准要用的那个）
-dsh-compat-doctor --json           # 输出结构化 JSON
-dsh-compat-doctor --all            # 连没有问题的插件也列出来
-dsh-compat-doctor --quiet          # 只输出一行结论（给脚本用）
+dsh-compat-vet                  # 检查默认 profile（$DSH_PROFILE 或 web）
+dsh-compat-vet --profile web    # 指定 profile（会压过环境里的 DSH_PROFILE_DIR）
+dsh-compat-vet --home <目录>     # 指定 ~/.dsh 所在目录
+dsh-compat-vet --anchor <路径>   # 指定 dsh 的 package.json（校准要用的那个）
+dsh-compat-vet --json           # 输出结构化 JSON
+dsh-compat-vet --all            # 连没有问题的插件也列出来
+dsh-compat-vet --quiet          # 只输出一行结论（给脚本用）
 ```
 
 退出码：`0` 没问题 / `1` 发现问题 / `2` 体检未完成。可以拿来做启动前的守门脚本。
@@ -244,8 +244,8 @@ dsh-compat-doctor --quiet          # 只输出一行结论（给脚本用）
 ### ③ 直接引用引擎
 
 ```js
-import { auditProfile } from 'dsh-compat-doctor/audit'
-import { auditProfileProbed } from 'dsh-compat-doctor/audit'   // 会先做实测校准
+import { auditProfile } from 'dsh-compat-vet/audit'
+import { auditProfileProbed } from 'dsh-compat-vet/audit'   // 会先做实测校准
 const report = auditProfile({ profileDir, profileName: 'web', installAnchor })
 ```
 
@@ -282,7 +282,7 @@ const report = auditProfile({ profileDir, profileName: 'web', installAnchor })
 - **结果直接显示在横幅上**（含每一步做了什么、是否已落盘、要不要重启、以及失败时的「已自动回滚」）；
   修完之后横幅不会立刻消失，免得你以为"什么都没发生"。
 - **改动前自动备份** profile 的 `package.json` / `cordis.patch.yml` / `compatibility.json` 到
-  `<profile>/.plugin-doctor-backup/<时间戳>/`；**改完自动复检**，保证类动作**复检不过就自动回滚**。
+  `<profile>/.compat-vet-backup/<时间戳>/`；**改完自动复检**，保证类动作**复检不过就自动回滚**。
 - 刻意**不提供**「豁免（`allow-version`）」这个选项：豁免只是"接受风险继续加载"，
   它**不会**让 dsh 下次启动不被拦下 —— 与本插件的目标正好相反。
 
@@ -296,15 +296,23 @@ const report = auditProfile({ profileDir, profileName: 'web', installAnchor })
 
 ### 从 npm 安装（给使用者的那条路）
 
-已发布到 npm：**[dsh-compat-doctor](https://www.npmjs.com/package/dsh-compat-doctor)**
+已发布到 npm：**[dsh-compat-vet](https://www.npmjs.com/package/dsh-compat-vet)**
 
 ```bash
-dsh plugin --profile web add dsh-compat-doctor
+dsh plugin --profile web add dsh-compat-vet
 ```
 
-> **为什么改过名字**：原来的 `dsh-plugin-doctor` 这个名字在 npm 上**已经被别人占用**
-> （作者 `Xrainsmile`，0.1.1），生态里另有两个同名插件。所以发布名改成了 `dsh-compat-doctor`。
-> 插件的模块 id、`cordis.patch.yml`、页面接口前缀、横幅 DOM id 都已一并对齐新名字。
+> **关于名字（改过两次）**：
+> 最初叫 `dsh-plugin-doctor` —— 但这个名字**在 npm 上已经被别人占用**（作者 `Xrainsmile`，0.1.1），
+> 生态里另有两个同名插件，所以第一次改成了 `dsh-compat-doctor`（并以此名发布过一次）。
+> 随后发现 `doctor` / `guard` / `health` / `sentinel` 这一族名字在插件目录里已经用滥
+> （`dsh-doctor` 3 条、`dsh-plugin-doctor` 3 条、`dsh-plugin-guard` 2 条，`dsh-plugin-sentinel`、
+> `dsh-boot-guard`、`dsh-startup-guard`、`dsh-conflict-guardian` 等均已占用），
+> 而 `compat` 在 4392 条目录里只被用过 2 次且都不是这个用途 —— 因此最终定名 **`dsh-compat-vet`**。
+>
+> 名字牵连的地方（客户端的模块 id **必须**等于包名，否则 dsh 路由不到横幅）都已对齐：
+> `package.json` 的 `name`/`bin`、`lib/client.js` 的模块 id、`cordis.patch.yml` 的 `name`、
+> `lib/index.js` 的 `name` 导出、页面接口前缀、横幅 DOM id、存储键、备份目录名、全部测试与文档。
 >
 > 上架进度与投稿文件见 [`publish/`](publish/)：收录到插件市场（dshmarket 的清单来自
 > [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)）
@@ -315,10 +323,10 @@ dsh plugin --profile web add dsh-compat-doctor
 
 ```bash
 # link: 指向源码目录，改完代码重启 dsh 即生效
-dsh plugin --profile web add link:D:/playwright-AI/playwright/dsh-compat-doctor
+dsh plugin --profile web add link:D:/playwright-AI/playwright/dsh-compat-vet
 
 # 卸载（两种安装方式都用同一条命令）
-dsh plugin --profile web remove dsh-compat-doctor
+dsh plugin --profile web remove dsh-compat-vet
 ```
 
 `dsh plugin add` 会**自动**把包名同时写进 `package.json` 的 `dependencies`
@@ -401,7 +409,7 @@ npm run preview        # 只读：用真实 profile 的数据把页面横幅渲�
 只想验**线上那个包**能不能被陌生人装上（不走本地源码）：
 
 ```bash
-node scripts/verify-tarball-install.mjs --from-npm dsh-compat-doctor@beta
+node scripts/verify-tarball-install.mjs --from-npm dsh-compat-vet@beta
 # 用 dsh 自己的 `dsh plugin add` 装 npm 上已发布的版本 → 空白 profile → 真启动 → 取横幅代码 → 卸载
 ```
 
@@ -419,7 +427,7 @@ node scripts/verify-tarball-install.mjs --from-npm dsh-compat-doctor@beta
 
 真实环境端到端已确认：
 
-- `dsh --profile web --dump-config` → 组合树里出现 `- id: plugin-doctor / name: dsh-compat-doctor`；
+- `dsh --profile web --dump-config` → 组合树里出现 `- id: compat-vet / name: dsh-compat-vet`；
 - **真机启动**（`npm run verify:boot`）→ 4 个 dsh 版本上插件都被真正调用、措辞全部正确、
   且「探测结论」与「dsh 真实是否拦下金丝雀」逐版本一致（见 §2.5）；
 - **真机「一键修复」**（`npm run verify:repair`）→ 在一个临时 `DSH_HOME` 里造一个必然不兼容的插件、
@@ -427,12 +435,12 @@ node scripts/verify-tarball-install.mjs --from-npm dsh-compat-doctor@beta
   状态报文里带着插件版本号与 dsh 版本号 → 修复走的是 dsh 自己的 `pluginManager` →
   改动真的落盘 → 第二次启动**不再跳过它**、启动告警消失、体检 0 冲突；
 - **客户端横幅真的会被浏览器加载**：dsh 的启动注入里带着
-  `dsh-compat-doctor/client.js`（真实 `rev` 从页面里取），按该 URL 取回 `HTTP 200`、  41 万字节，内容就是本插件的横幅代码；
+  `dsh-compat-vet/client.js`（真实 `rev` 从页面里取），按该 URL 取回 `HTTP 200`、  41 万字节，内容就是本插件的横幅代码；
 - **打包产物装得上、装完能用**（`npm run verify:tarball`，21 项）→ `npm pack` 出真 tarball、
   用 dsh 自己的安装命令装进空白 profile、真启动、取到横幅代码、再卸载干净；
-- **npm 上已发布的那一个包也一样能用**（`--from-npm dsh-compat-doctor@beta`，16 项）→
+- **npm 上已发布的那一个包也一样能用**（`--from-npm dsh-compat-vet@beta`，16 项）→
   这条路就是陌生人点「一键安装」走的路：装出来的是 registry 上的真拷贝
-  （`node_modules/.pnpm/dsh-compat-doctor@0.3.0/…`，不是指回本机源码目录），
+  （`node_modules/.pnpm/dsh-compat-vet@0.3.0/…`，不是指回本机源码目录），
   启动后体检 0 冲突、横幅代码 `HTTP 200`、卸载干净；
 - **用真实数据把界面渲染了一遍**（`npm run preview`）→ 你的 profile 上横幅会同时报出
   `dsh-cost-meter@1.7.35`（已阻断）与 `dshmarket@1.66.6`（将在 dsh `0.3.0` 失配），
@@ -454,20 +462,21 @@ node scripts/verify-tarball-install.mjs --from-npm dsh-compat-doctor@beta
 
 | 文件 | 改动 |
 | --- | --- |
-| `~/.dsh/profiles/web/package.json` | `dependencies` 增加 `dsh-compat-doctor: link:D:/playwright-AI/playwright/dsh-compat-doctor`；`dsh.profile.bundles` 末尾增加 `dsh-compat-doctor` |
+| `~/.dsh/profiles/web/package.json` | `dependencies` 增加 `dsh-compat-vet: link:D:/playwright-AI/playwright/dsh-compat-vet`；`dsh.profile.bundles` 末尾增加 `dsh-compat-vet` |
 | `~/.dsh/profiles/web/pnpm-lock.yaml` | 增加该 link 依赖的 lock 条目 |
-| `~/.dsh/profiles/web/node_modules/dsh-compat-doctor` | 新建 Junction，指向源码目录 |
+| `~/.dsh/profiles/web/node_modules/dsh-compat-vet` | 新建 Junction，指向源码目录 |
 
-**同日改名同步**（发布前把旧名 `dsh-plugin-doctor` 换成 `dsh-compat-doctor`，因为旧名在 npm 上已被别人占用）：
+**同日两次改名同步**（`dsh-plugin-doctor` → `dsh-compat-doctor` → 最终 `dsh-compat-vet`，原因见 §5）：
 
 | 文件 | 改动 |
 | --- | --- |
-| `~/.dsh/profiles/web/package.json` | 依赖键与 bundles 条目：`dsh-plugin-doctor` → `dsh-compat-doctor`（`link:` 目标路径不变） |
-| `~/.dsh/profiles/web/pnpm-lock.yaml` | 同一条 lock 条目的键名同步 |
-| `~/.dsh/profiles/web/node_modules/` | 旧 Junction `dsh-plugin-doctor` 删除，新建 `dsh-compat-doctor`（同一目标） |
+| `~/.dsh/profiles/web/package.json` | 依赖键与 bundles 条目同步改名；最后一次同时把 `link:` 目标路径改成改名后的源码目录 |
+| `~/.dsh/profiles/web/pnpm-lock.yaml` | 同一条 lock 条目的键名与 link 路径同步 |
+| `~/.dsh/profiles/web/node_modules/` | 旧 Junction 删除，新建 `dsh-compat-vet` Junction |
+| 源码目录 | `D:\playwright-AI\playwright\dsh-plugin-doctor` → `…\dsh-compat-vet`（目录名与包名、仓库名彻底一致） |
 
-同步后已用**只读**方式复核：`dsh --profile web --dump-config` 里出现
-`- id: plugin-doctor / name: dsh-compat-doctor`，唯一的启动告警仍是**本来就存在**的
+每次同步后都用**只读**方式复核：`dsh --profile web --dump-config` 里出现
+`- id: compat-vet / name: dsh-compat-vet`，唯一的启动告警仍是**本来就存在**的
 `dsh-cost-meter`，没有新增问题。
 
 **没有改**：原有 8 个插件一个没动（版本、解析路径全部不变）、`cordis.yml`、
@@ -477,7 +486,7 @@ node scripts/verify-tarball-install.mjs --from-npm dsh-compat-doctor@beta
 > 按 `1` 隔离会动 `~/.dsh/profiles/web/package.json` 的 `dsh.profile.bundles`，
 > 按 `2` 卸载会走 dsh 的 `remove`。每次改动前都会自动把 `package.json` /
 > `cordis.patch.yml` / `compatibility.json` 备份到
-> `~/.dsh/profiles/web/.plugin-doctor-backup/<时间戳>/`；复检不过会自动回滚。
+> `~/.dsh/profiles/web/.compat-vet-backup/<时间戳>/`；复检不过会自动回滚。
 > **本轮开发过程中没有对用户的真实 profile 执行过任何修复动作** ——
 > 真机修复验证全程跑在临时 `DSH_HOME` 里（`npm run verify:repair`）。
 
@@ -489,7 +498,7 @@ node scripts/verify-tarball-install.mjs --from-npm dsh-compat-doctor@beta
 
 ```bash
 # 方式一：正规卸载（推荐）
-dsh plugin --profile web remove dsh-compat-doctor
+dsh plugin --profile web remove dsh-compat-vet
 
 # 方式二：直接用快照还原（连 lock 一起回到改前状态）
 copy /Y _profile-backup\20260930-152606\package.json       %USERPROFILE%\.dsh\profiles\web\package.json
@@ -542,7 +551,7 @@ cd %USERPROFILE%\.dsh\profiles\web && pnpm install
 ## 10. 目录结构
 
 ```
-dsh-compat-doctor/                # 目录名仍是旧名（Junction 指向它，改名会牵连本机安装）
+dsh-compat-vet/                # 目录名 = 包名 = GitHub 仓库名（三者彻底一致）
 ├── package.json                  # dsh.bundle.patch + dsh.client 声明 + bin 入口 + npm 元数据
 ├── cordis.patch.yml              # 把插件插进 profile 的 bundle 层
 ├── LICENSE                       # MIT

@@ -373,7 +373,7 @@ test('repairPlugin：动作/目标非法时立刻拒绝，不碰 profile', async
   const noName = await repairPlugin({ action: REPAIR_ACTION.QUARANTINE, target: {}, profileDir: dir })
   assert.equal(noName.ok, false)
   assert.equal(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'), before)
-  assert.equal(fs.readdirSync(dir).some((f) => f === '.plugin-doctor-backup'), false, '非法请求不该留下备份目录')
+  assert.equal(fs.readdirSync(dir).some((f) => f === '.compat-vet-backup'), false, '非法请求不该留下备份目录')
   fs.rmSync(dir, { recursive: true, force: true })
 })
 
