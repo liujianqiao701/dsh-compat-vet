@@ -296,7 +296,7 @@ const report = auditProfile({ profileDir, profileName: 'web', installAnchor })
 
 ### 从 npm 安装（给使用者的那条路）
 
-已发布到 npm：**[dsh-compat-vet](https://www.npmjs.com/package/dsh-compat-vet)**（`latest = 0.3.0`）
+已发布到 npm：**[dsh-compat-vet](https://www.npmjs.com/package/dsh-compat-vet)**（`latest = 0.3.1`）
 
 ```bash
 dsh plugin --profile web add dsh-compat-vet
@@ -446,7 +446,7 @@ node scripts/verify-tarball-install.mjs --from-npm dsh-compat-vet@beta
   用 dsh 自己的安装命令装进空白 profile、真启动、取到横幅代码、再卸载干净；
 - **npm 上已发布的那一个包也一样能用**（`--from-npm dsh-compat-vet@beta`，16 项）→
   这条路就是陌生人点「一键安装」走的路：装出来的是 registry 上的真拷贝
-  （`node_modules/.pnpm/dsh-compat-vet@0.3.0/…`，不是指回本机源码目录），
+  （`node_modules/.pnpm/dsh-compat-vet@0.3.1/…`，不是指回本机源码目录），
   启动后体检 0 冲突、横幅代码 `HTTP 200`、卸载干净；
 - **用真实数据把界面渲染了一遍**（`npm run preview`）→ 你的 profile 上横幅会同时报出
   `dsh-cost-meter@1.7.35`（已阻断）与 `dshmarket@1.66.6`（将在 dsh `0.3.0` 失配），

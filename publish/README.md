@@ -14,7 +14,7 @@ data/plugins/liujianqiao701__dsh-compat-vet.yml
 
 | 事项 | 状态 |
 | --- | --- |
-| npm 发布 | ✅ [`dsh-compat-vet@0.3.0`](https://www.npmjs.com/package/dsh-compat-vet)（`latest`），已用「空白 profile 装 → 真启动 → 取横幅 → 卸载」16 项验证 |
+| npm 发布 | ✅ [`dsh-compat-vet`](https://www.npmjs.com/package/dsh-compat-vet)（`latest = 0.3.1`），已用「空白 profile 装 → 真启动 → 取横幅 → 卸载」16 项验证 |
 | GitHub 仓库 | ✅ [liujianqiao701/dsh-compat-vet](https://github.com/liujianqiao701/dsh-compat-vet)（public），`main` 已推送 |
 | `dsh-plugin` 主题标签 | ✅ 已设（另加 `deepseek-harness`/`dsh`/`cordis`/`plugin-compatibility`） |
 | 仓库年龄 ≥ 1 天 | ⏳ 2026-09-30 建的 → 最早 **2026-10-01** 才能提 PR |
@@ -40,7 +40,7 @@ npm 映射**不需要**在 yml 里写任何字段——由 registry 自动采集
 `package.json` 里已填 `https://github.com/liujianqiao701/dsh-compat-vet` ✅
 
 ⚠️ **映射生效后，市场的一键安装会走 npm**（`dsh plugin --profile web add dsh-compat-vet`），
-所以 `latest` 必须指向一个真实可装的版本 —— 当前 `latest = 0.3.0`，已实测可装 ✅
+所以 `latest` 必须指向一个真实可装的版本 —— 当前 `latest = 0.3.1`，已实测可装 ✅
 
 ## 提 PR 的命令
 
