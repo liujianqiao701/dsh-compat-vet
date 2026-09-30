@@ -294,11 +294,30 @@ const report = auditProfile({ profileDir, profileName: 'web', installAnchor })
 
 ## 5. 安装 / 卸载
 
+### 从 npm 安装（给使用者的那条路）
+
+已发布到 npm：**[dsh-compat-doctor](https://www.npmjs.com/package/dsh-compat-doctor)**
+
 ```bash
-# 安装（本机就是这样装的，link: 指向源码目录，改完代码重启 dsh 即生效）
+dsh plugin --profile web add dsh-compat-doctor
+```
+
+> **为什么改过名字**：原来的 `dsh-plugin-doctor` 这个名字在 npm 上**已经被别人占用**
+> （作者 `Xrainsmile`，0.1.1），生态里另有两个同名插件。所以发布名改成了 `dsh-compat-doctor`。
+> 插件的模块 id、`cordis.patch.yml`、页面接口前缀、横幅 DOM id 都已一并对齐新名字。
+>
+> 上架进度与投稿文件见 [`publish/`](publish/)：收录到插件市场（dshmarket 的清单来自
+> [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)）
+> 需要往那边提一个 PR，加一个 YAML 条目；**npm 发布与收录是独立的**，
+> 发不发 npm 都不影响收录，收录也不依赖 npm。
+
+### 从源码安装（本机开发就是这样装的）
+
+```bash
+# link: 指向源码目录，改完代码重启 dsh 即生效
 dsh plugin --profile web add link:D:/playwright-AI/playwright/dsh-compat-doctor
 
-# 卸载
+# 卸载（两种安装方式都用同一条命令）
 dsh plugin --profile web remove dsh-compat-doctor
 ```
 
@@ -308,6 +327,12 @@ dsh plugin --profile web remove dsh-compat-doctor
 
 > 本插件自己的 `dsh.engines.dsh` 写的是 `"*"` —— 一个声称「适配任意 dsh 版本」的插件
 > 不该反过来给自己设版本门槛。
+
+⚠️ Windows 上有个 **pnpm 自己的坑**（与插件无关，但会撞到）：
+同一个目录如果被长短两种路径写法混用（`...\liujianqiao\...` 与 `...\LIUJIA~1\...`），
+pnpm 会报 `ERR_PNPM_UNEXPECTED_VIRTUAL_STORE` 并拒绝 `add`/`remove`。
+照它提示先在 profile 目录里跑一次 `pnpm install` 即可恢复。
+（本插件的验证脚本因此先把临时目录解析成长路径再用——见 `scripts/verify-tarball-install.mjs`。）
 
 ---
 
@@ -369,7 +394,15 @@ npm test               # 134 个用例（含 4 个真实 dsh 版本的实测对�
 npm run test:fast      # 跳过版本对拍，只跑纯逻辑
 npm run verify:boot    # 真机启动验证（把本机每个 dsh 版本各真启动一次）
 npm run verify:repair  # 真机「一键修复」验证（隔离环境里真修一次 + 再启动一次）
+npm run verify:tarball # 打包安装验证：npm pack 出来 → dsh 自己装 → 真启动（22 项）
 npm run preview        # 只读：用真实 profile 的数据把页面横幅渲染出来给你看
+```
+
+只想验**线上那个包**能不能被陌生人装上（不走本地源码）：
+
+```bash
+node scripts/verify-tarball-install.mjs --from-npm dsh-compat-doctor@beta
+# 用 dsh 自己的 `dsh plugin add` 装 npm 上已发布的版本 → 空白 profile → 真启动 → 取横幅代码 → 卸载
 ```
 
 | 测试文件 | 覆盖 |
@@ -394,8 +427,13 @@ npm run preview        # 只读：用真实 profile 的数据把页面横幅渲�
   状态报文里带着插件版本号与 dsh 版本号 → 修复走的是 dsh 自己的 `pluginManager` →
   改动真的落盘 → 第二次启动**不再跳过它**、启动告警消失、体检 0 冲突；
 - **客户端横幅真的会被浏览器加载**：dsh 的启动注入里带着
-  `dsh-compat-doctor/client.js`（真实 `rev` 从页面里取），按该 URL 取回 `HTTP 200`、
-  41 万字节，内容就是本插件的横幅代码；
+  `dsh-compat-doctor/client.js`（真实 `rev` 从页面里取），按该 URL 取回 `HTTP 200`、  41 万字节，内容就是本插件的横幅代码；
+- **打包产物装得上、装完能用**（`npm run verify:tarball`，22 项）→ `npm pack` 出真 tarball、
+  用 dsh 自己的安装命令装进空白 profile、真启动、取到横幅代码、再卸载干净；
+- **npm 上已发布的那一个包也一样能用**（`--from-npm dsh-compat-doctor@beta`，16 项）→
+  这条路就是陌生人点「一键安装」走的路：装出来的是 registry 上的真拷贝
+  （`node_modules/.pnpm/dsh-compat-doctor@0.3.0/…`，不是指回本机源码目录），
+  启动后体检 0 冲突、横幅代码 `HTTP 200`、卸载干净；
 - **用真实数据把界面渲染了一遍**（`npm run preview`）→ 你的 profile 上横幅会同时报出
   `dsh-cost-meter@1.7.35`（已阻断）与 `dshmarket@1.66.6`（将在 dsh `0.3.0` 失配），
   并给出了 `[1] 隔离 [2] 卸载 [3] 升级`；30 个依赖里只有 `dshmarket` 一个触发预警，不是噪音；
@@ -420,6 +458,18 @@ npm run preview        # 只读：用真实 profile 的数据把页面横幅渲�
 | `~/.dsh/profiles/web/pnpm-lock.yaml` | 增加该 link 依赖的 lock 条目 |
 | `~/.dsh/profiles/web/node_modules/dsh-compat-doctor` | 新建 Junction，指向源码目录 |
 
+**同日改名同步**（发布前把旧名 `dsh-plugin-doctor` 换成 `dsh-compat-doctor`，因为旧名在 npm 上已被别人占用）：
+
+| 文件 | 改动 |
+| --- | --- |
+| `~/.dsh/profiles/web/package.json` | 依赖键与 bundles 条目：`dsh-plugin-doctor` → `dsh-compat-doctor`（`link:` 目标路径不变） |
+| `~/.dsh/profiles/web/pnpm-lock.yaml` | 同一条 lock 条目的键名同步 |
+| `~/.dsh/profiles/web/node_modules/` | 旧 Junction `dsh-plugin-doctor` 删除，新建 `dsh-compat-doctor`（同一目标） |
+
+同步后已用**只读**方式复核：`dsh --profile web --dump-config` 里出现
+`- id: plugin-doctor / name: dsh-compat-doctor`，唯一的启动告警仍是**本来就存在**的
+`dsh-cost-meter`，没有新增问题。
+
 **没有改**：原有 8 个插件一个没动（版本、解析路径全部不变）、`cordis.yml`、
 `cordis.patch.yml`、`pnpm-workspace.yaml` 均未改动；`compatibility.json` 未创建。
 
@@ -431,8 +481,9 @@ npm run preview        # 只读：用真实 profile 的数据把页面横幅渲�
 > **本轮开发过程中没有对用户的真实 profile 执行过任何修复动作** ——
 > 真机修复验证全程跑在临时 `DSH_HOME` 里（`npm run verify:repair`）。
 
-**改前快照**：`_profile-backup/20260930-152606/`（含 `package.json` / `pnpm-lock.yaml` /
-`pnpm-workspace.yaml` / `cordis.yml` / `cordis.patch.yml`）。
+**改前快照**：`_profile-backup/20260930-152606/`（安装前，含 `package.json` / `pnpm-lock.yaml` /
+`pnpm-workspace.yaml` / `cordis.yml` / `cordis.patch.yml`）与
+`_profile-backup/20260930-rename/`（改名同步前）。
 
 **回滚**（二选一）：
 
@@ -445,6 +496,9 @@ copy /Y _profile-backup\20260930-152606\package.json       %USERPROFILE%\.dsh\pr
 copy /Y _profile-backup\20260930-152606\pnpm-lock.yaml     %USERPROFILE%\.dsh\profiles\web\pnpm-lock.yaml
 cd %USERPROFILE%\.dsh\profiles\web && pnpm install
 ```
+
+> `_profile-backup/` 已被 `.gitignore` 排除：它里面是本机真实 profile 的配置快照，
+> 不进公开仓库（`report/` 同理，含本机路径与已装插件清单）。
 
 `dsh-cost-meter@1.7.35` 的不兼容**不是本次改动造成的** —— 它在安装本插件之前
 就已经被 dsh 启动预检拒绝加载了（见 §1 的 dsh 原始日志）。本插件只是把它报了出来，
@@ -488,27 +542,34 @@ cd %USERPROFILE%\.dsh\profiles\web && pnpm install
 ## 10. 目录结构
 
 ```
-dsh-compat-doctor/
-├── package.json                 # dsh.bundle.patch + dsh.client 声明 + bin 入口
-├── cordis.patch.yml             # 把插件插进 profile 的 bundle 层
+dsh-compat-doctor/                # 目录名仍是旧名（Junction 指向它，改名会牵连本机安装）
+├── package.json                  # dsh.bundle.patch + dsh.client 声明 + bin 入口 + npm 元数据
+├── cordis.patch.yml              # 把插件插进 profile 的 bundle 层
+├── LICENSE                       # MIT
+├── .gitignore                    # 排除私有快照与报告（见下）
+├── .gitattributes                # 一律 LF 入库
 ├── lib/
-│   ├── index.js                 # cordis 宿主插件：启动自检 + 工具 + 提示词段落 + 页面接口挂载
-│   ├── adapt.js                 # 适配层：定位 + 上下文来源推导 + 运行时能力实测校准
-│   ├── audit.js                 # 审计引擎（纯函数 + 文件读取，永不抛）
-│   ├── upgrade.js               # 「快要不适配」预测：按声明范围推算何时会坏
-│   ├── repair.js                # 修复层：备份 → 走 dsh 服务改 → 落盘校验 + 复检 → 不过就回滚
-│   ├── routes.js                # 宿主 HTTP 接口：状态 / 发起修复 / 查询作业（回环 + 同源围栏）
-│   ├── client.js                # 页面横幅（手写 lazy-CJS，零依赖、无构建步骤）
-│   ├── semver.js                # 自包含 SemVer 范围求值器（与真 semver 对拍过）
-│   ├── report.js                # 中文报告渲染 + 修复命令生成（措辞随实测能力变）
-│   ├── locate.js                # 定位 dsh 安装目录（含从进程入口反推）
-│   └── cli.js                   # 独立 CLI（dsh 起不来时用）
+│   ├── index.js                  # cordis 宿主插件：启动自检 + 工具 + 提示词段落 + 页面接口挂载
+│   ├── adapt.js                  # 适配层：定位 + 上下文来源推导 + 运行时能力实测校准
+│   ├── audit.js                  # 审计引擎（纯函数 + 文件读取，永不抛）
+│   ├── upgrade.js                # 「快要不适配」预测：按声明范围推算何时会坏
+│   ├── repair.js                 # 修复层：备份 → 走 dsh 服务改 → 落盘校验 + 复检 → 不过就回滚
+│   ├── routes.js                 # 宿主 HTTP 接口：状态 / 发起修复 / 查询作业（回环 + 同源围栏）
+│   ├── client.js                 # 页面横幅（手写 lazy-CJS，零依赖、无构建步骤）
+│   ├── semver.js                 # 自包含 SemVer 范围求值器（与真 semver 对拍过）
+│   ├── report.js                 # 中文报告渲染 + 修复命令生成（措辞随实测能力变）
+│   ├── locate.js                 # 定位 dsh 安装目录（含从进程入口反推）
+│   └── cli.js                    # 独立 CLI（dsh 起不来时用）
 ├── scripts/
-│   ├── verify-real-boot.mjs     # 真机启动验证：每个 dsh 版本各真启动一次
-│   ├── verify-real-repair.mjs   # 真机修复验证：真改一次 + 再启动一次（见 §2.6 bug 5）
-│   └── preview-banner.mjs       # 只读：用真实 profile 的数据把横幅渲染出来看（npm run preview）
-├── test/                        # 134 个用例（含 4 个真实 dsh 版本的实测对拍）
-│   └── helpers/fake-dom.mjs     # 最小假 DOM（测试与 preview 工具共用一份）
-├── report/                      # 阶段性验证报告（人读；不在 npm files 里）
-└── _profile-backup/             # 安装到 web profile 前的配置快照（回滚用）
+│   ├── verify-real-boot.mjs      # 真机启动验证：每个 dsh 版本各真启动一次
+│   ├── verify-real-repair.mjs    # 真机修复验证：真改一次 + 再启动一次（见 §2.6 bug 5）
+│   ├── verify-tarball-install.mjs# 打包安装验证；--from-npm 可直接验线上那个包
+│   ├── preview-banner.mjs        # 只读：用真实 profile 的数据把横幅渲染出来看
+│   └── helpers/
+│       ├── dsh-harness.mjs       # 真机验证公共件（临时 home / 启停 dsh / 建 profile）
+│       └── fake-dom.mjs          # 最小假 DOM（测试与 preview 工具共用一份）
+├── test/                         # 134 个用例（含 4 个真实 dsh 版本的实测对拍）
+├── publish/                      # 投稿插件市场的文件与步骤（含那条 YAML 条目）
+├── report/                       # 阶段性验证报告（含本机路径，故 gitignore）
+└── _profile-backup/              # 本机 profile 配置快照（含插件清单，故 gitignore）
 ```

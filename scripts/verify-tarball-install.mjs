@@ -39,10 +39,11 @@ function check(what, ok, extra) {
 }
 
 function parseArgs(argv) {
-  const out = { keep: false, dsh: undefined }
+  const out = { keep: false, dsh: undefined, npm: undefined }
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--keep') out.keep = true
     if (argv[i] === '--dsh') { out.dsh = argv[i + 1]; i += 1 }
+    if (argv[i] === '--from-npm') { out.npm = argv[i + 1]; i += 1 }
   }
   return out
 }
@@ -85,16 +86,67 @@ function packedFileList() {
   }
 }
 
-/** 用 dsh 自己的安装命令装 tarball —— 市场一键安装走的就是这条。 */
-function dshPluginAdd({ home, dshBin, tarball }) {
+/** 用 dsh 自己的安装命令装 —— 市场一键安装走的就是这条（参数是 npm 名或 tarball 路径）。 */
+function dshPluginAdd({ home, dshBin, spec }) {
   try {
     const stdout = execFileSync(process.execPath, [
-      dshBin, 'plugin', '--profile', PROFILE_NAME, 'add', tarball,
+      dshBin, 'plugin', '--profile', PROFILE_NAME, 'add', spec,
     ], { env: childEnv(home), encoding: 'utf8', timeout: 300_000, stdio: 'pipe' })
     return { ok: true, output: stdout }
   } catch (error) {
     return { ok: false, output: `${error.stdout ?? ''}${error.stderr ?? ''}${error.message ?? ''}` }
   }
+}
+
+/** 在临时 profile 里跑一次 pnpm install（修 pnpm 自己的虚拟存储位置告警用）。 */
+function pnpmInstall(profileDir) {
+  try {
+    execFileSync('pnpm', ['install'], {
+      cwd: profileDir, encoding: 'utf8', timeout: 300_000, stdio: 'pipe', shell: process.platform === 'win32',
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 卸载，并在遇到 pnpm 的虚拟存储位置告警时按 pnpm 自己的建议补救一次。
+ *
+ * 背景：Windows 上同一个目录会有两种写法（长路径 `...\liujianqiao\...` 与 8.3 短路径
+ * `...\LIUJIA~1\...`）。node_modules 若被其中一种写法建起来、又被另一种写法读，
+ * pnpm 会判定"虚拟存储位置变了"并拒绝执行 `remove`：
+ *   [ERR_PNPM_UNEXPECTED_VIRTUAL_STORE] Unexpected virtual store location
+ * 这是 pnpm 在 Windows 上的已知毛病，与插件无关；它给的办法就是先 `pnpm install` 一次。
+ */
+function dshPluginRemove({ home, dshBin, profileDir }) {
+  const run = () => {
+    try {
+      execFileSync(process.execPath, [dshBin, 'plugin', '--profile', PROFILE_NAME, 'remove', PKG_NAME], {
+        env: childEnv(home), encoding: 'utf8', timeout: 180_000, stdio: 'pipe',
+      })
+      return { ok: true, detail: '' }
+    } catch (error) {
+      return { ok: false, detail: `${error.stdout ?? ''}${error.stderr ?? ''}`.trim().replace(/\s+/g, ' ') }
+    }
+  }
+
+  let result = run()
+  if (!result.ok && /UNEXPECTED_VIRTUAL_STORE/.test(result.detail)) {
+    const repaired = pnpmInstall(profileDir)
+    result = run()
+    if (result.ok) {
+      result = { ok: true, detail: `先按 pnpm 的提示跑了一次 pnpm install 才成功（Windows 短路径问题，与插件无关；install ${repaired ? '成功' : '失败'}）` }
+    }
+  }
+
+  if (result.ok) {
+    const after = readJson(path.join(profileDir, 'package.json'))
+    const gone = after.dependencies?.[PKG_NAME] === undefined
+      && !(after.dsh?.profile?.bundles ?? []).includes(PKG_NAME)
+    return { ok: gone, detail: gone ? result.detail : '命令跑完了，但清单里还留着它' }
+  }
+  return { ok: false, detail: result.detail.slice(-300) }
 }
 
 const args = parseArgs(process.argv.slice(2))
@@ -109,7 +161,15 @@ if (!fs.existsSync(dshBin)) {
   process.exit(1)
 }
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dpd-tarball-'))
+// ⚠️ 必须把临时目录解析成**长路径**再用。
+// 这台机器上 `os.tmpdir()` 返回的是 8.3 短路径（`C:\Users\LIUJIA~1\AppData\Local\Temp`），
+// 于是 Node 按短路径建目录、pnpm 内部按长路径算 —— 同一个目录两种写法，
+// pnpm 会判定"虚拟存储位置变了"而拒绝 remove（ERR_PNPM_UNEXPECTED_VIRTUAL_STORE）。
+const TMP_ROOT = (() => {
+  const raw = os.tmpdir()
+  try { return fs.realpathSync.native(raw) } catch { return raw }
+})()
+const root = fs.mkdtempSync(path.join(TMP_ROOT, 'dpd-tarball-'))
 const home = path.join(root, 'home')
 const packDir = path.join(root, 'pack')
 fs.mkdirSync(home, { recursive: true })
@@ -118,18 +178,27 @@ fs.mkdirSync(packDir, { recursive: true })
 let web
 try {
   console.log('① 打成真 tarball（npm 发布时上传的就是它）')
-  const tarball = packTarball({ dest: packDir })
-  const size = fs.statSync(tarball).size
-  check('tarball 打出来了', fs.existsSync(tarball), `${path.basename(tarball)}，${(size / 1024).toFixed(1)} kB`)
+  let installSpec
+  if (args.npm !== undefined && args.npm !== '') {
+    installSpec = args.npm
+    console.log(`① 直接装 npm 上**已发布**的版本：${installSpec}`)
+    console.log('   （这条路就是陌生人点「一键安装」走的那条，产物不是我本地目录）')
+  } else {
+    console.log('① 打成真 tarball（npm 发布时上传的就是它）')
+    const tarball = packTarball({ dest: packDir })
+    installSpec = tarball
+    const size = fs.statSync(tarball).size
+    check('tarball 打出来了', fs.existsSync(tarball), `${path.basename(tarball)}，${(size / 1024).toFixed(1)} kB`)
 
-  // 发布产物的**隐私检查**：里面不能有使用者的真实 profile 快照之类的东西
-  const files = packedFileList()
-  if (files.length > 0) {
-    check('产物里没有本机私有快照（_profile-backup）', !files.some((one) => one.includes('_profile-backup')),
-      `${files.length} 个文件`)
-    check('产物里带上了 cordis.patch.yml（少了它 dsh 装不上）', files.includes('cordis.patch.yml'))
-    check('产物里带上了浏览器端 lib/client.js（少了它页面上没有横幅）', files.includes('lib/client.js'))
-    check('产物里带上了 LICENSE', files.some((one) => one === 'LICENSE'))
+    // 发布产物的**隐私检查**：里面不能有使用者的真实 profile 快照之类的东西
+    const files = packedFileList()
+    if (files.length > 0) {
+      check('产物里没有本机私有快照（_profile-backup）', !files.some((one) => one.includes('_profile-backup')),
+        `${files.length} 个文件`)
+      check('产物里带上了 cordis.patch.yml（少了它 dsh 装不上）', files.includes('cordis.patch.yml'))
+      check('产物里带上了浏览器端 lib/client.js（少了它页面上没有横幅）', files.includes('lib/client.js'))
+      check('产物里带上了 LICENSE', files.some((one) => one === 'LICENSE'))
+    }
   }
 
   console.log('\n② 建一个空白临时 profile（不是你在用的那个）')
@@ -137,7 +206,7 @@ try {
   check('临时 profile 建好了', fs.existsSync(path.join(profileDir, 'package.json')), profileDir)
 
   console.log('\n③ 用 dsh 自己的安装命令装它（= 插件市场的一键安装路径）')
-  const installed = dshPluginAdd({ home, dshBin, tarball })
+  const installed = dshPluginAdd({ home, dshBin, spec: installSpec })
   check('dsh plugin add 成功', installed.ok,
     installed.ok ? '' : installed.output.slice(-400).replace(/\s+/g, ' '))
   if (!installed.ok) throw new Error('安装失败，后面不用测了')
@@ -188,17 +257,15 @@ try {
     }
   }
 
+  // 先把这个临时实例停掉再测卸载：dsh 还在跑的时候，pnpm 改 node_modules
+  // 会和它抢文件（本脚本第一版就是这么误报『卸载失败』的）。
+  stopWeb(web)
+  web = undefined
+  await new Promise((resolve) => setTimeout(resolve, 1200))
+
   console.log('\n⑤ 顺带确认：卸载路径也能走通')
-  try {
-    execFileSync(process.execPath, [dshBin, 'plugin', '--profile', PROFILE_NAME, 'remove', PKG_NAME], {
-      env: childEnv(home), encoding: 'utf8', timeout: 180_000, stdio: 'pipe',
-    })
-    const after = readJson(path.join(profileDir, 'package.json'))
-    check('dsh plugin remove 之后依赖没了', after.dependencies?.[PKG_NAME] === undefined)
-    check('清单里也不再挂载它', !(after.dsh?.profile?.bundles ?? []).includes(PKG_NAME))
-  } catch (error) {
-    check('dsh plugin remove 能跑通', false, String(error.message).slice(0, 200))
-  }
+  const removed = dshPluginRemove({ home, dshBin, profileDir })
+  check('dsh plugin remove 能跑通', removed.ok, removed.detail)
 } catch (error) {
   failed += 1
   console.log(`\n验证中断：${error.message}`)
