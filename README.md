@@ -394,7 +394,7 @@ npm test               # 134 个用例（含 4 个真实 dsh 版本的实测对�
 npm run test:fast      # 跳过版本对拍，只跑纯逻辑
 npm run verify:boot    # 真机启动验证（把本机每个 dsh 版本各真启动一次）
 npm run verify:repair  # 真机「一键修复」验证（隔离环境里真修一次 + 再启动一次）
-npm run verify:tarball # 打包安装验证：npm pack 出来 → dsh 自己装 → 真启动（22 项）
+npm run verify:tarball # 打包安装验证：npm pack 出来 → dsh 自己装 → 真启动（21 项）
 npm run preview        # 只读：用真实 profile 的数据把页面横幅渲染出来给你看
 ```
 
@@ -428,7 +428,7 @@ node scripts/verify-tarball-install.mjs --from-npm dsh-compat-doctor@beta
   改动真的落盘 → 第二次启动**不再跳过它**、启动告警消失、体检 0 冲突；
 - **客户端横幅真的会被浏览器加载**：dsh 的启动注入里带着
   `dsh-compat-doctor/client.js`（真实 `rev` 从页面里取），按该 URL 取回 `HTTP 200`、  41 万字节，内容就是本插件的横幅代码；
-- **打包产物装得上、装完能用**（`npm run verify:tarball`，22 项）→ `npm pack` 出真 tarball、
+- **打包产物装得上、装完能用**（`npm run verify:tarball`，21 项）→ `npm pack` 出真 tarball、
   用 dsh 自己的安装命令装进空白 profile、真启动、取到横幅代码、再卸载干净；
 - **npm 上已发布的那一个包也一样能用**（`--from-npm dsh-compat-doctor@beta`，16 项）→
   这条路就是陌生人点「一键安装」走的路：装出来的是 registry 上的真拷贝
