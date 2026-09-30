@@ -1,0 +1,68 @@
+{
+  "name": "dsh-compat-doctor",
+  "version": "0.3.0",
+  "type": "module",
+  "description": "DSH 插件兼容性体检：自动探测本机 dsh 版本与能力（含实测校准），适配任意 dsh 版本；启动时检查已装插件是否冲突，在 DSH 页面上给出中文预警与一键修复（隔离/卸载/升级），并提前预警「快要不适配」的插件",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "plugin",
+    "compatibility",
+    "doctor"
+  ],
+  "author": "liujianqiao",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liujianqiao701/dsh-compat-doctor.git"
+  },
+  "homepage": "https://github.com/liujianqiao701/dsh-compat-doctor#readme",
+  "bugs": {
+    "url": "https://github.com/liujianqiao701/dsh-compat-doctor/issues"
+  },
+  "main": "lib/index.js",
+  "bin": {
+    "dsh-compat-doctor": "lib/cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/audit.test.mjs test/adapt.test.mjs test/plugin.test.mjs test/semver.test.mjs test/upgrade.test.mjs test/repair.test.mjs test/routes.test.mjs test/client.test.mjs test/versions.test.mjs",
+    "test:fast": "node --test test/audit.test.mjs test/adapt.test.mjs test/plugin.test.mjs test/semver.test.mjs test/upgrade.test.mjs test/repair.test.mjs test/routes.test.mjs test/client.test.mjs",
+    "verify:boot": "node scripts/verify-real-boot.mjs",
+    "verify:repair": "node scripts/verify-real-repair.mjs",
+    "verify:tarball": "node scripts/verify-tarball-install.mjs",
+    "preview": "node scripts/preview-banner.mjs",
+    "doctor": "node lib/cli.js"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./audit": "./lib/audit.js",
+    "./adapt": "./lib/adapt.js",
+    "./repair": "./lib/repair.js",
+    "./upgrade": "./lib/upgrade.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "scripts",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "engines": {
+      "dsh": "*"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,6 @@
+url: https://github.com/liujianqiao701/dsh-compat-doctor
+name: liujianqiao701/dsh-compat-doctor
+category: dev
+description:
+  en: Checks installed dsh plugins for version conflicts with the running dsh, warns on the DSH web page about plugins that the next startup would refuse to load, and repairs them with one keypress by isolating or uninstalling the plugin, backing up the profile first and rolling back automatically if the change does not take effect.
+  zh: 体检已装 dsh 插件与当前 dsh 版本的兼容性，在 DSH 页面上预警那些下次启动会被拒绝加载的插件，并支持按键一键隔离或卸载来修掉它；改动前自动备份，变更没生效会自动回滚。
